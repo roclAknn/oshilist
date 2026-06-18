@@ -9,9 +9,9 @@
 <body>
   <header>
     <span class="count" id="count">0 / 30</span>
+    <button type="button" id="btn-save">画像として保存</button>
     <button type="button" id="btn-all-owned">すべて所持</button>
     <button type="button" id="btn-all-not-owned">すべて未所持</button>
-    <button type="button" id="btn-save">画像として保存</button>
   </header>
 
   <div id="main"></div>
@@ -116,11 +116,6 @@
             img.alt = String(idx + 1);
             img.loading = 'lazy';
             card.appendChild(img);
-
-            const overlay = document.createElement('span');
-            overlay.className = 'card-overlay';
-            overlay.setAttribute('aria-hidden', 'true');
-            card.appendChild(overlay);
 
             card.addEventListener('click', () => {
               owned[idx] = !owned[idx];
