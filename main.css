@@ -43,9 +43,9 @@ header button:hover {
 
 #main {
   display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
 }
 
 .deck {
@@ -55,6 +55,31 @@ header button:hover {
   padding: 8px;
   background: #fff;
   border: 1px solid #ccc;
+}
+
+@media (max-width: 460px) {
+  .deck:first-of-type {
+    border-bottom: 0;
+  }
+  .deck:last-of-type {
+    border-top: 0;
+    padding-top: 0;
+  }
+}
+
+@media (min-width: 460px) {
+  #main {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 16px;
+  }
+
+  .deck {
+    padding: 8px;
+    background: #fff;
+    border: 1px solid #ccc;
+  }
 }
 
 .set {
