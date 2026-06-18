@@ -65,8 +65,8 @@ header button:hover {
 
 .card {
   position: relative;
-  width: 64px;
-  height: 62px;
+  width: 62px;
+  height: 64px;
   border: 1px solid #aaa;
   cursor: pointer;
   overflow: hidden;
