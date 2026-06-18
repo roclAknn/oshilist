@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>/MapleStory/ 推しカード管理</title>
+  <link rel="stylesheet" href="main.css">
+</head>
+<body>
+  <header>
+    <span class="count" id="count">0 / 30</span>
+    <button type="button" id="btn-all-owned">すべて所持</button>
+    <button type="button" id="btn-all-not-owned">すべて未所持</button>
+    <button type="button" id="btn-save">画像として保存</button>
+  </header>
+
+  <div id="main"></div>
+
+  <div class="modal-overlay" id="modal">
+    <div class="modal">
+      <p id="modal-message"></p>
+      <div class="modal-actions">
+        <button type="button" id="modal-cancel">キャンセル</button>
+        <button type="button" id="modal-ok">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script>
+    const TOTAL = 30;
+    const CARDS_PER_SET = 3;
+    const SETS_PER_DECK = 5;
+    const COOKIE_NAME = 'oshilist_owned';
+    const CARD_EXT = '.png';
+
+    let owned = new Array(TOTAL).fill(true);
+    let modalResolve = null;
+
+    function getCardPaths() {
+      const paths = [];
+      for (let i = 1; i <= TOTAL; i++) {
+        paths.push('cards/' + String(i).padStart(2, '0') + CARD_EXT);
+      }
+      return paths;
+    }
+
+    function loadOwned() {
+      const raw = document.cookie
+        .split('; ')
+        .find(row => row.startsWith(COOKIE_NAME + '='));
+      if (!raw) return;
+      try {
+        const data = JSON.parse(decodeURIComponent(raw.split('=')[1]));
+        if (Array.isArray(data) && data.length === TOTAL) {
+          owned = data.map(v => Boolean(v));
+        }
+      } catch (_) {}
+    }
+
+    function saveOwned() {
+      const value = encodeURIComponent(JSON.stringify(owned));
+      const maxAge = 60 * 60 * 24 * 365;
+      document.cookie = COOKIE_NAME + '=' + value + '; path=/; max-age=' + maxAge + '; SameSite=Lax';
+    }
+
+    function updateCount() {
+      const n = owned.filter(Boolean).length;
+      document.getElementById('count').textContent = n + ' / ' + TOTAL;
+    }
+
+    function confirmModal(message) {
+      return new Promise(resolve => {
+        modalResolve = resolve;
+        document.getElementById('modal-message').textContent = message;
+        document.getElementById('modal').classList.add('open');
+      });
+    }
+
+    function closeModal(result) {
+      document.getElementById('modal').classList.remove('open');
+      if (modalResolve) {
+        modalResolve(result);
+        modalResolve = null;
+      }
+    }
+
+    function render() {
+      const main = document.getElementById('main');
+      main.innerHTML = '';
+      const paths = getCardPaths();
+      const deckCount = Math.ceil(TOTAL / (CARDS_PER_SET * SETS_PER_DECK));
+
+      for (let d = 0; d < deckCount; d++) {
+        const deck = document.createElement('div');
+        deck.className = 'deck';
+
+        for (let s = 0; s < SETS_PER_DECK; s++) {
+          const setIndex = d * SETS_PER_DECK + s;
+          const startCard = setIndex * CARDS_PER_SET;
+          if (startCard >= TOTAL) break;
+
+          const set = document.createElement('div');
+          set.className = 'set';
+
+          for (let c = 0; c < CARDS_PER_SET; c++) {
+            const idx = startCard + c;
+            if (idx >= TOTAL) break;
+
+            const card = document.createElement('div');
+            card.className = 'card' + (owned[idx] ? '' : ' not-owned');
+            card.dataset.index = idx;
+
+            const img = document.createElement('img');
+            img.src = paths[idx];
+            img.alt = String(idx + 1);
+            img.loading = 'lazy';
+            card.appendChild(img);
+
+            card.addEventListener('click', () => {
+              owned[idx] = !owned[idx];
+              card.classList.toggle('not-owned', !owned[idx]);
+              updateCount();
+              saveOwned();
+            });
+
+            set.appendChild(card);
+          }
+
+          deck.appendChild(set);
+        }
+
+        main.appendChild(deck);
+      }
+
+      updateCount();
+    }
+
+    document.getElementById('modal-ok').addEventListener('click', () => closeModal(true));
+    document.getElementById('modal-cancel').addEventListener('click', () => closeModal(false));
+    document.getElementById('modal').addEventListener('click', e => {
+      if (e.target.id === 'modal') closeModal(false);
+    });
+
+    document.getElementById('btn-all-owned').addEventListener('click', async () => {
+      const ok = await confirmModal('すべてのカードを所持にしますか？');
+      if (!ok) return;
+      owned.fill(true);
+      render();
+      saveOwned();
+    });
+
+    document.getElementById('btn-all-not-owned').addEventListener('click', async () => {
+      const ok = await confirmModal('すべてのカードを未所持にしますか？');
+      if (!ok) return;
+      owned.fill(false);
+      render();
+      saveOwned();
+    });
+
+    document.getElementById('btn-save').addEventListener('click', async () => {
+      const main = document.getElementById('main');
+      const canvas = await html2canvas(main, {
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#f5f5f5',
+        scale: 2
+      });
+      const link = document.createElement('a');
+      link.download = 'oshilist.jpg';
+      link.href = canvas.toDataURL('image/jpeg', 0.92);
+      link.click();
+    });
+
+    loadOwned();
+    render();
+  </script>
+</body>
+</html>
